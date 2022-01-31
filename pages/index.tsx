@@ -21,7 +21,6 @@ const date = new Date().getDate();
 const year = new Date().getFullYear();
 const month = new Date().getMonth()+1;
 const fullDate = `${date}-${month}-${year}`;
-// console.log(fullDate);
 
 export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   const session = await getSession({ req });
@@ -123,7 +122,7 @@ export default function Home({ tasks }: { tasks: tasks[] }) {
       </Head>
 
       <main className="flex justify-center">
-        <div className="flex flex-col">
+        <div className="flex flex-col border-red-400">
           <div className="text-4xl mt-10 font-extrabold flex justify-center border-b-4 pb-2">
             <TodayDate />
           </div>
