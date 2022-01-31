@@ -2,21 +2,68 @@ import Head from "next/head";
 import TodayDate from "../components/todayDate";
 import { tasks } from "../data/tasks";
 import { useState } from "react";
+import {
+  GithubLoginButton,
+  FacebookLoginButton,
+  GoogleLoginButton,
+  TwitterLoginButton,
+  LinkedInLoginButton,
+  TelegramLoginButton,
+  InstagramLoginButton,
+} from "react-social-login-buttons";
+import { useSession, getSession, signIn, signOut } from "next-auth/react";
+import prisma from "../lib/prisma";
+import { GetServerSideProps } from "next";
+import Router from "next/router";
+import { useEffect } from "react";
 
-export default function Home() {
-  const date = new Date().getDate() + 1;
-  const year = new Date().getFullYear;
-  const month = new Date().getMonth;
-  const fullDate = `${date}-${month}-${year}`;
+const date = new Date().getDate();
+const year = new Date().getFullYear();
+const month = new Date().getMonth()+1;
+const fullDate = `${date}-${month}-${year}`;
+// console.log(fullDate);
+
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  const session = await getSession({ req });
+  if (!session) {
+    res.statusCode = 403;
+    return { props: { tasks: [] } };
+  }
+  const tasks = await prisma.task.findMany({
+    where: {
+      author: { email: session.user.email },
+      fullDate: fullDate
+    },
+  });
+  return {
+    props: { tasks },
+  };
+};
+
+interface tasks {
+  id: string;
+  task: string;
+  year: number;
+  month: number;
+  date: number;
+  fullDate: string;
+}
+
+export default function Home({ tasks }: { tasks: tasks[] }) {
   const [newTask, setNewTask] = useState("");
+  const [allTask, setAllTasks] = useState([]);
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    setAllTasks(tasks)
+  }, [tasks]);
 
   function handleTaskOnClick(e: any) {
-    // e.target.classList.toggle("line-through");
     e.target.classList.toggle("bg-green-200");
     e.target.classList.toggle("text-slate-600");
   }
 
-  const getAllTask = tasks.map((task) => (
+  const getAllTask = allTask.map((task) => (
     <li 
     key={task.id} 
     className="py-2 my-1 px-3 rounded-md bg-green-300 font-semibold w-full"
@@ -26,7 +73,46 @@ export default function Home() {
     </li>
   ));
 
-  const createTask = async (e: React.SyntheticEvent) => {};
+  const createTask = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    try {
+      const body = { newTask };
+      await fetch("api/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      await Router.push("/");
+      setNewTask("");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  if(!session){
+    return (
+      <div>
+        <Head>
+          <title>5 Task List</title>
+          <meta name="description" content="5 Task List Main page" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <main>
+          <div className="center-v-h">
+            <GithubLoginButton onClick={() => signIn("github")} />
+            <FacebookLoginButton onClick={() => signIn("facebook")} />
+            <GoogleLoginButton onClick={() => signIn("google")} />
+            <TwitterLoginButton onClick={() => signIn("twitter")} />
+            <LinkedInLoginButton onClick={() => signIn("linkedin")} />
+            <TelegramLoginButton onClick={() => signIn("telegram")} />
+            <InstagramLoginButton onClick={() => signIn("instagram")} />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -64,6 +150,7 @@ export default function Home() {
                 <button
                   className="flex-shrink-0 border-transparent border-4 text-teal-500 hover:text-teal-800 py-1 px-2 rounded text-xl mb-3"
                   type="button"
+                  onClick={() => signOut()}
                 >
                   Logout
                 </button>
